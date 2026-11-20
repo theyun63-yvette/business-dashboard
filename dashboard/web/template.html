@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>行业阶段看板 · P0</title>
+<!-- __ECHARTS__ -->
+<style>
+:root{
+  --bg:#fbfbf9; --card:#ffffff; --line:#e8e6e0; --line2:#f0eee8;
+  --t1:#2f3330; --t2:#6b7168; --t3:#9aa096;
+  --up:#c0392b; --down:#3f8f4a;
+  --s-main:#7cb342; --s-hot:#e0a03c; --s-dorm:#a5a69e; --s-clear:#cf7052;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);color:var(--t1);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  font-size:13px;line-height:1.6;padding:28px 32px 48px;
+  font-variant-numeric:tabular-nums;
+}
+.wrap{max-width:1180px;margin:0 auto}
+header{display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;
+  padding-bottom:14px;border-bottom:1px solid var(--line);margin-bottom:20px}
+h1{font-size:17px;font-weight:500;letter-spacing:.2px}
+h1 .tag{font-size:11px;font-weight:400;color:var(--t3);border:1px solid var(--line);
+  border-radius:3px;padding:1px 6px;margin-left:8px;vertical-align:2px}
+.meta{font-size:12px;color:var(--t3);text-align:right;line-height:1.7}
+.meta b{color:var(--t2);font-weight:400}
+
+.filters{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:transparent;color:var(--t2);
+  font-size:12px;padding:5px 14px;border-radius:14px;cursor:pointer;transition:.15s}
+.chip:hover{border-color:#c8cfc0;color:var(--t1)}
+.chip.on{background:#eef4e6;border-color:#c9ddb0;color:#4d6b2c}
+
+.kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:16px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.kpi .k{font-size:12px;color:var(--t3);margin-bottom:6px}
+.kpi .v{font-size:24px;font-weight:500;letter-spacing:-.5px}
+.kpi .v small{font-size:12px;color:var(--t3);font-weight:400;margin-left:3px}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.85fr) minmax(0,1fr);gap:12px;margin-bottom:16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.card h2{font-size:13px;font-weight:500;margin-bottom:2px;display:flex;
+  justify-content:space-between;align-items:baseline}
+.card h2 span{font-size:11px;color:var(--t3);font-weight:400}
+#chart{width:100%;height:430px;margin-top:6px}
+
+.mkt{padding:11px 0;border-bottom:1px solid var(--line2)}
+.mkt:last-child{border-bottom:0}
+.mkt .row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:7px}
+.mkt .nm{font-size:13px;font-weight:500}
+.mkt .ch{font-size:12px}
+.bar{display:flex;height:5px;border-radius:3px;overflow:hidden;background:var(--line2)}
+.bar i{display:block;height:100%}
+.legend{display:flex;gap:12px;font-size:11px;color:var(--t3);margin-top:10px;flex-wrap:wrap}
+.legend s{display:inline-block;width:6px;height:6px;border-radius:1px;margin-right:4px;text-decoration:none}
+
+table{width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed}
+thead th{font-weight:400;color:var(--t3);font-size:11.5px;text-align:right;
+  padding:0 0 9px;border-bottom:1px solid var(--line);white-space:nowrap}
+thead th:nth-child(-n+3){text-align:left}
+tbody td{padding:9px 0;border-bottom:1px solid var(--line2);text-align:right;color:var(--t2)}
+tbody td:nth-child(-n+3){text-align:left;color:var(--t1)}
+tbody tr:hover td{background:#fafcf7}
+tbody tr:last-child td{border-bottom:0}
+.nm2{font-weight:500}
+.mk{font-size:10.5px;color:var(--t3);border:1px solid var(--line);border-radius:2px;
+  padding:0 4px;margin-left:5px;vertical-align:1px}
+.pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:9px}
+.pill i{font-style:normal;opacity:.65;margin-left:4px;font-size:10.5px}
+.flag{display:inline-block;font-style:normal;font-size:10px;margin-left:5px;padding:0 5px;
+  border-radius:3px;line-height:15px;cursor:help;vertical-align:1px}
+.flag.mv{background:#ede7f6;color:#6a4fa3}
+.flag.pd{background:var(--line2);color:var(--t3)}
+.up{color:var(--up)} .down{color:var(--down)}
+/* tbody td 的优先级高于单独类名，涨跌色必须显式提权，否则数字不变色 */
+tbody td.up{color:var(--up)} tbody td.down{color:var(--down)}
+.dotbar{display:inline-block;width:52px;height:4px;background:var(--line2);
+  border-radius:2px;overflow:hidden;vertical-align:middle;margin-right:6px}
+.dotbar i{display:block;height:100%}
+.spark{vertical-align:middle}
+
+.notes{margin-top:16px;background:#faf9f6;border:1px solid var(--line);
+  border-radius:10px;padding:14px 18px}
+.notes h3{font-size:12px;font-weight:500;color:var(--t2);margin-bottom:7px}
+.notes li{font-size:11.5px;color:var(--t2);margin-left:15px;margin-bottom:3px;line-height:1.65}
+footer{margin-top:22px;padding-top:14px;border-top:1px solid var(--line);
+  font-size:11px;color:var(--t3);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap}
+@media(max-width:900px){
+  .grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}
+  body{padding:20px 16px 40px}
+}
+</style>
+</head>
+<body>
+<div id="err" style="display:none;margin:0 0 14px;padding:10px 14px;border-radius:8px;
+  background:#fdf0ec;border:1px solid #f0cfc4;color:#a04a2e;font-size:12px"></div>
+
+<div class="wrap">
+
+<header>
+  <h1>行业阶段看板<span class="tag">P0 原型 · 技术面阶段</span></h1>
+  <div class="meta">
+    数据截止 <b id="asof"></b> · 生成 <b id="gen"></b><br>
+    腾讯财经 fqkline（A股/港股）· 新浪美股（美股，Yahoo 兜底）
+  </div>
+</header>
+
+<div class="filters" id="filters"></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="k">主升期行业</div><div class="v" id="k1"></div></div>
+  <div class="kpi"><div class="k">过热期行业</div><div class="v" id="k2"></div></div>
+  <div class="kpi"><div class="k">平均景气度</div><div class="v" id="k3"></div></div>
+  <div class="kpi"><div class="k">今日确认迁移</div><div class="v" id="k4"></div></div>
+</div>
+
+<div class="grid">
+  <div class="card">
+    <h2>行业阶段地图<span>x = 景气度（价格动量）· y = 资金拥挤度 · 气泡 = 成交额</span></h2>
+    <div id="chart"></div>
+  </div>
+  <div class="card">
+    <h2>市场概览<span>基准涨跌 / 阶段分布</span></h2>
+    <div id="mkts"></div>
+    <div class="legend">
+      <span><s style="background:var(--s-main)"></s>主升</span>
+      <span><s style="background:var(--s-hot)"></s>过热</span>
+      <span><s style="background:var(--s-dorm)"></s>潜伏</span>
+      <span><s style="background:var(--s-clear)"></s>出清</span>
+      <span style="color:var(--t3)">虚线圈 = 迁移待确认（未满 3 日）</span>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>行业阶段榜<span>按景气度降序 · 点击表头可切换排序</span></h2>
+  <table>
+    <colgroup>
+      <col style="width:23%"><col style="width:15%"><col style="width:9%">
+      <col style="width:12%"><col style="width:12%"><col style="width:9%">
+      <col style="width:8%"><col style="width:9%"><col style="width:8%">
+    </colgroup>
+    <thead><tr>
+      <th>行业</th><th>阶段</th><th>20日</th>
+      <th data-sort="mom">景气度</th><th data-sort="crowd">拥挤度</th>
+      <th data-sort="ret60">60日</th><th data-sort="pos">价格位置</th>
+      <th data-sort="amount">成交额·亿</th><th>近60日</th>
+    </tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<div class="notes">
+  <h3>数据说明与已知缺口</h3>
+  <ul id="notes"></ul>
+</div>
+
+<footer>
+  <span>本看板为链路验证原型，不构成任何投资建议。</span>
+  <span>指标口径：超额收益基准为本市场指数（沪深300 / 恒生指数 / 标普500）</span>
+</footer>
+
+</div>
+
+<script>
+const DATA = /*__DATA__*/;
+window.onerror = function(m, s, l, c, e){
+  const d = document.getElementById("err");
+  d.style.display = "block";
+  d.textContent = "渲染错误：" + m + "  (line " + l + ":" + c + ")";
+};
+const SC = {"主升":"#7cb342","过热":"#e0a03c","潜伏":"#a5a69e","出清":"#cf7052"};
+const SCL = {"主升":"#eef4e6","过热":"#fbf1e2","潜伏":"#f4f4f1","出清":"#faece7"};
+const SCT = {"主升":"#4d6b2c","过热":"#8d6318","潜伏":"#6b7168","出清":"#a04a2e"};
+let cur = "全部", sortKey = "mom", sortDir = -1;
+
+document.getElementById("asof").textContent = DATA.as_of;
+document.getElementById("gen").textContent = DATA.generated_at;
+
+const markets = ["全部", ...Object.keys(DATA.markets)];
+document.getElementById("filters").innerHTML = markets.map(m =>
+  `<button class="chip${m===cur?" on":""}" data-m="${m}">${m}${
+    m==="全部"?` · ${DATA.nodes.length}`:` · ${DATA.markets[m].count}`}</button>`).join("");
+document.querySelectorAll(".chip").forEach(b => b.onclick = () => {
+  cur = b.dataset.m;
+  document.querySelectorAll(".chip").forEach(x => x.classList.toggle("on", x===b));
+  render();
+});
+
+const chart = echarts.init(document.getElementById("chart"), null, {renderer:"canvas"});
+
+function filtered(){
+  let a = cur==="全部" ? DATA.nodes.slice() : DATA.nodes.filter(n=>n.market===cur);
+  a.sort((x,y)=>(y[sortKey]??-1)-(x[sortKey]??-1));
+  return a;
+}
+
+function render(){
+  const ns = filtered();
+
+  document.getElementById("k1").innerHTML = ns.filter(n=>n.stage==="主升").length + `<small>个</small>`;
+  document.getElementById("k2").innerHTML = ns.filter(n=>n.stage==="过热").length + `<small>个</small>`;
+  const avg = ns.length ? ns.reduce((s,n)=>s+n.mom,0)/ns.length : 0;
+  document.getElementById("k3").innerHTML = avg.toFixed(1) + `<small>/100</small>`;
+  const mv = ns.filter(n=>n.moved).length, pd = ns.filter(n=>n.pending).length;
+  document.getElementById("k4").innerHTML = mv + `<small>个 · ${pd} 待确认</small>`;
+
+  document.getElementById("mkts").innerHTML = Object.entries(DATA.markets).map(([m,v])=>{
+    const cls = (v.bench_chg??0) >= 0 ? "up" : "down";
+    const sign = (v.bench_chg??0) >= 0 ? "+" : "";
+    const tot = Object.values(v.stages).reduce((a,b)=>a+b,0) || 1;
+    const bar = ["主升","过热","潜伏","出清"].map(s=>
+      `<i style="width:${v.stages[s]/tot*100}%;background:${SC[s]}"></i>`).join("");
+    return `<div class="mkt">
+      <div class="row"><span class="nm">${m}</span>
+        <span class="ch ${cls}">${v.bench_name} ${sign}${v.bench_chg??"-"}%</span></div>
+      <div class="bar">${bar}</div>
+      <div class="row" style="margin:6px 0 0">
+        <span style="font-size:11px;color:var(--t3)">${v.count} 个行业 · 平均 ${
+          v.avg_chg==null?"-":(v.avg_chg>=0?"+":"")+v.avg_chg}%</span>
+        <span style="font-size:11px;color:var(--t3)">主升 ${v.stages["主升"]} · 过热 ${v.stages["过热"]} · 潜伏 ${v.stages["潜伏"]} · 出清 ${v.stages["出清"]}</span>
+      </div></div>`;
+  }).join("");
+
+  const maxA = Math.max(...ns.map(n=>n.amount), 1);
+  // 散点标签去掉 ETF / SPDR 后缀：同一市场里这是冗余信息，占宽却翻倍
+  const shortName = s => s.replace(/(SPDR|ETF)$/, "");
+
+  // 标签避让：按真实像素框做贪心排布，成交额大的优先占位，
+  // 放不下就换方位，四个方位都撞就隐藏（表格里仍有全称）
+  const G = {left:58, right:62, top:36, bottom:48};
+  const cw = document.getElementById("chart").clientWidth || 640;
+  const chh = document.getElementById("chart").clientHeight || 470;
+  const pw = cw - G.left - G.right, ph = chh - G.top - G.bottom;
+  const toX = v => G.left + v/104*pw;
+  const toY = v => G.top + ph - v/104*ph;
+  const textW = s => [...s].reduce((w,ch2) => w + (/[\u4e00-\u9fa5]/.test(ch2) ? 10.8 : 6.2), 0);
+  function boxFor(p, pos){
+    const cx = toX(p.value[0]), cy = toY(p.value[1]);
+    const w = textW(p.name), h = 13, d = 7;
+    if(pos === "right") return [cx+d, cy-h/2, cx+d+w, cy+h/2];
+    if(pos === "left")  return [cx-d-w, cy-h/2, cx-d, cy+h/2];
+    if(pos === "top")   return [cx-w/2, cy-h-6, cx+w/2, cy-6];
+    return [cx-w/2, cy+6, cx+w/2, cy+6+h];
+  }
+  const hit = (a,b) => !(a[2] < b[0] || a[0] > b[2] || a[3] < b[1] || a[1] > b[3]);
+
+  const boxes = [], posOf = {}, hide = new Set();
+  const draft = ns.map(n => ({value:[n.mom, n.crowd], name:shortName(n.name), n}));
+  draft.sort((a,b) => b.n.amount - a.n.amount);
+  for(const p of draft){
+    const x = p.value[0], y = p.value[1];
+    let cand = (x >= 50) ? ["right","left","top","bottom"] : ["left","right","top","bottom"];
+    if(y >= 95) cand = ["bottom","left","right","top"];
+    else if(y <= 5) cand = ["top","left","right","bottom"];
+    if(x >= 96) cand = ["left", ...cand];
+    let placed = false;
+    for(const c of cand){
+      const b = boxFor(p, c);
+      if(b[0] < G.left-4 || b[2] > cw-2 || b[1] < G.top-6 || b[3] > chh-G.bottom+10) continue;
+      if(boxes.some(k => hit(k, b))) continue;
+      posOf[p.n.code] = c; boxes.push(b); placed = true; break;
+    }
+    if(!placed) hide.add(p.n.code);
+  }
+
+  const pts = ns.map(n=>{
+    const x = n.mom, y = n.crowd;
+    return {
+      name:shortName(n.name), value:[x, y], n,
+      label:{position:posOf[n.code] || "right", show:!hide.has(n.code)},
+      symbolSize: 8 + 17*Math.sqrt(n.amount/maxA),
+      itemStyle:{color:SC[n.stage], borderColor:"#fff",
+        borderWidth:n.pending?2:1.5, borderType:n.pending?"dashed":"solid", opacity:.85}
+    };
+  });
+
+  // 象限名放在该象限内点位最空的角，随每日数据自动避让
+  function cornerLabel(pts, x0, x1, y0, y1, txt, color){
+    const cs = [["insideBottomLeft",x0,y0],["insideBottomRight",x1,y0],
+                ["insideTopLeft",x0,y1],["insideTopRight",x1,y1]];
+    let best = cs[0], bestN = 1e9;
+    for(const c of cs){
+      let n = 0;
+      for(const p of pts){
+        if(Math.abs(p.value[0]-c[1]) < 17 && Math.abs(p.value[1]-c[2]) < 14) n++;
+      }
+      if(n < bestN){ bestN = n; best = c; }
+    }
+    // 偏移一律朝象限内部推，避免压到轴线外
+    const off = {insideBottomLeft:[13,11],insideBottomRight:[-13,11],
+                 insideTopLeft:[13,-11],insideTopRight:[-13,-11]}[best[0]];
+    return {label:{show:true,formatter:txt,position:best[0],color,fontSize:12,offset:off}};
+  }
+
+  chart.setOption({
+    grid:{left:58,right:62,top:36,bottom:48},
+    xAxis:{name:"景气度",nameLocation:"end",nameGap:10,nameTextStyle:{fontSize:11,color:"#9aa096"},
+      min:0,max:104,splitLine:{lineStyle:{color:"#f0eee8"}},
+      axisLine:{lineStyle:{color:"#e0ded8"}},axisTick:{show:false},
+      axisLabel:{fontSize:10.5,color:"#9aa096"}},
+    yAxis:{name:"拥挤度",nameLocation:"end",nameGap:10,nameTextStyle:{fontSize:11,color:"#9aa096"},
+      min:0,max:104,splitLine:{lineStyle:{color:"#f0eee8"}},
+      axisLine:{lineStyle:{color:"#e0ded8"}},axisTick:{show:false},
+      axisLabel:{fontSize:10.5,color:"#9aa096"}},
+    series:[{
+      type:"scatter", data:pts, animationDuration:600, clip:false,
+      labelLayout:{hideOverlap:true},
+      markLine:{silent:true,symbol:"none",
+        lineStyle:{color:"#d6d3cb",type:"dashed",width:1},
+        data:[{xAxis:50},{yAxis:50}],label:{show:false}},
+      markArea:{silent:true,
+        data:[
+          [{xAxis:50,yAxis:0,itemStyle:{color:"#f4f9ed"},
+            ...cornerLabel(pts,50,100,0,50,"主升","#b3c99a")},
+           {xAxis:104,yAxis:50}],
+          [{xAxis:50,yAxis:50,itemStyle:{color:"#fdf6ec"},
+            ...cornerLabel(pts,50,100,50,100,"过热","#dcc09a")},
+           {xAxis:104,yAxis:104}],
+          [{xAxis:0,yAxis:0,itemStyle:{color:"#f5f5f2"},
+            ...cornerLabel(pts,0,50,0,50,"潜伏","#c2c4ba")},
+           {xAxis:50,yAxis:50}],
+          [{xAxis:0,yAxis:50,itemStyle:{color:"#fbf1ec"},
+            ...cornerLabel(pts,0,50,50,100,"出清","#d8b3a4")},
+           {xAxis:50,yAxis:104}]
+        ]},
+      label:{show:true,position:"right",fontSize:10.5,color:"#7d8378",distance:6,
+        formatter:p=>(p&&p.name)?p.name:""},
+      emphasis:{scale:1.15,label:{color:"#2f3330",fontWeight:500}},
+      tooltip:{}
+    }],
+    tooltip:{
+      backgroundColor:"#fff",borderColor:"#e8e6e0",borderWidth:1,
+      textStyle:{color:"#2f3330",fontSize:12},padding:[10,12],
+      extraCssText:"box-shadow:none;border-radius:8px",
+      formatter:p=>{const n=p.data.n;return `<b>${n.name}</b> <span style="color:#9aa096">${n.market} · ${n.sector}</span><br>
+        <span style="display:inline-block;margin:5px 0 4px;padding:1px 7px;border-radius:9px;
+          background:${SCL[n.stage]};color:${SCT[n.stage]};font-size:11px">${n.stage} · 已持续 ${n.stage_days} 天</span>
+        ${n.pending?`<span style="color:#9aa096;font-size:11px">（待确认，未定阶段 ${n.stage_conf}）</span>`:""}
+        ${n.moved?`<span style="color:#9aa096;font-size:11px">（今日由 ${n.prev_stage} 迁入）</span>`:""}<br>
+        景气度 ${n.mom}（横比 ${n.mom_cs} / 纵比 ${n.mom_ts??"-"}）&nbsp; 拥挤度 ${n.crowd}<br>
+        20日 ${n.ret20>0?"+":""}${n.ret20}% &nbsp; 60日 ${n.ret60>0?"+":""}${n.ret60}%<br>
+        价格位置 ${n.pos??"-"}% &nbsp; 成交额 ${n.amount} 亿`}
+    }
+  }, true);
+
+  document.getElementById("tbody").innerHTML = ns.map(n=>{
+    const c = n.chg>=0?"up":"down", m = n.chg>=0?"+":"";
+    const sp = n.spark.length>1 ? sparkSVG(n.spark, SC[n.stage]) : "";
+    return `<tr>
+      <td><span class="nm2">${n.name}</span><span class="mk">${n.market}</span></td>
+      <td><span class="pill" style="background:${SCL[n.stage]};color:${SCT[n.stage]}">${n.stage}<i>${n.stage_days}天</i></span>${n.moved
+        ? `<em class="flag mv" title="今日由 ${n.prev_stage} 迁入 ${n.stage_conf}">迁移</em>`
+        : (n.pending ? `<em class="flag pd" title="已进入${n.stage}，需连续 3 日确认；原阶段 ${n.stage_conf}">?</em>` : "")}</td>
+      <td class="${n.ret20>=0?"up":"down"}">${n.ret20>0?"+":""}${n.ret20}%</td>
+      <td><span class="dotbar"><i style="width:${n.mom}%;background:${SC[n.stage]}"></i></span>${n.mom}</td>
+      <td><span class="dotbar"><i style="width:${n.crowd}%;background:#b9c4ae"></i></span>${n.crowd}</td>
+      <td class="${n.ret60>=0?"up":"down"}">${n.ret60>0?"+":""}${n.ret60}%</td>
+      <td>${n.pos??"-"}%</td>
+      <td>${n.amount}</td>
+      <td>${sp}</td>
+    </tr>`;
+  }).join("");
+
+  document.getElementById("notes").innerHTML = DATA.notes.map(t=>`<li>${t}</li>`).join("");
+}
+
+function sparkSVG(v, color){
+  const w=54,h=16,mn=Math.min(...v),mx=Math.max(...v),rg=(mx-mn)||1;
+  const pts=v.map((y,i)=>`${(i/(v.length-1)*w).toFixed(1)},${(h-((y-mn)/rg)*h).toFixed(1)}`).join(" ");
+  return `<svg class="spark" width="${w}" height="${h}"><polyline points="${pts}"
+    fill="none" stroke="${color}" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+}
+
+document.querySelectorAll("th[data-sort]").forEach(th=>{
+  th.style.cursor="pointer";
+  th.onclick=()=>{const k=th.dataset.sort;
+    sortDir = (k===sortKey)? -sortDir : -1; sortKey=k; render();};
+});
+
+window.addEventListener("resize", ()=>chart.resize());
+render();
+</script>
+</body>
+</html>
