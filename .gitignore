@@ -1,0 +1,9 @@
+# 上游行情缓存，重跑自动生成
+dashboard/data/raw/
+
+# Python
+__pycache__/
+*.pyc
+
+# macOS
+.DS_Store
